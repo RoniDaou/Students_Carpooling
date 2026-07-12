@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { RideProvider } from "@/contexts/RideContext";
 
 import ProtectedRoute from "@/components/common/ProtectedRoute";
+import RideRequestNotifier from "@/components/common/RideRequestNotifier";
 
 import HomePage from "@/pages/HomePage";
 import AboutPage from "@/pages/AboutPage";
@@ -27,12 +28,13 @@ const queryClient = new QueryClient();
 export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <RideProvider>
-          <TooltipProvider>
-            <Toaster />
+      <BrowserRouter>
+        <AuthProvider>
+          <RideProvider>
+            <TooltipProvider>
+              <Toaster />
+              <RideRequestNotifier />
 
-            <BrowserRouter>
               <Routes>
                 <Route path="/" element={<HomePage />} />
 
@@ -89,10 +91,10 @@ export default function App() {
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-          </TooltipProvider>
-        </RideProvider>
-      </AuthProvider>
+            </TooltipProvider>
+          </RideProvider>
+        </AuthProvider>
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
