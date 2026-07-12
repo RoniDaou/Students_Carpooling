@@ -2,38 +2,61 @@ const dns = require("node:dns");
 
 dns.setServers(["1.1.1.1", "8.8.8.8"]);
 
-//Importing express
 const express = require("express");
 const cors = require("cors");
-
-//Importing dotenv that allows to load environment variables from a .env file into process.env
-require("dotenv").config();
-
-//Importing Mongoose to connect to the database on mongodb atlas
 const mongoose = require("mongoose");
 
-const app = express();
+require("dotenv").config();
 
-// Allow all origins (or you can specify a specific domain)
-app.use(cors());
-
+const User = require("./models/userModel");
 const userRoutes = require("./routes/user");
 const rideRoutes = require("./routes/ride");
 
-//Middleware build into Express to parse incoming JSON requests
+const app = express();
+
+app.use(cors());
 app.use(express.json());
 
 app.use("/user", userRoutes);
 app.use("/rides", rideRoutes);
 
 const PORT = process.env.PORT || 5000;
-//Connect to the database
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
+
+/*
+ * Your MongoDB collection contains an old unique index named
+ * "studentId_1", although studentId is no longer in the schema.
+ *
+ * This removes only that obsolete index.
+ */
+const removeObsoleteUserIndexes = async () => {
+  const indexes = await User.collection.indexes();
+
+  const studentIdIndexExists = indexes.some(
+    (index) => index.name === "studentId_1",
+  );
+
+  if (studentIdIndexExists) {
+    await User.collection.dropIndex("studentId_1");
+
+    console.log('Removed obsolete MongoDB index: "studentId_1"');
+  }
+};
+
+const startServer = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+
+    console.log("Connected to the database successfully");
+
+    await removeObsoleteUserIndexes();
+
     app.listen(PORT, () => {
       console.log(`Listening on port ${PORT}`);
-      console.log("Connected to the Database successfully");
     });
-  })
-  .catch((error) => console.log(error));
+  } catch (error) {
+    console.error("Server startup error:", error);
+    process.exit(1);
+  }
+};
+
+startServer();
