@@ -51,7 +51,7 @@ export default function HomePage() {
                     {userRole === "driver" && (
                       <Button
                         size="lg"
-                        className="border-2 border-white bg-lau-green text-white hover:bg-lau-green hover:text-white"
+                        className="bg-white text-lau-green hover:bg-gray-100"
                         asChild
                       >
                         <Link to="/rides/create">Offer a Ride</Link>
