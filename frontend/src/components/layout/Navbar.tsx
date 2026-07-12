@@ -78,7 +78,7 @@ export default function Navbar() {
                 to="/bookings"
                 className="text-gray-700 transition-colors hover:text-lau-green"
               >
-                My Bookings
+                {userRole === "driver" ? "Ride Requests" : "My Bookings"}
               </Link>
 
               <div className="flex items-center gap-4">

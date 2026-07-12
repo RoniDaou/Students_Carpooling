@@ -221,14 +221,17 @@ export default function HomePage() {
                     : 0;
 
                 return (
-                  <Card key={ride._id} className="overflow-hidden">
+                  <Card
+                    key={ride._id}
+                    className="flex h-full flex-col overflow-hidden"
+                  >
                     <CardHeader>
                       <CardTitle className="text-lg">
                         {pickupLocation} → {destination}
                       </CardTitle>
                     </CardHeader>
 
-                    <CardContent className="space-y-2">
+                    <CardContent className="flex flex-1 flex-col space-y-2">
                       <p>{formatRideDate(ride.date)}</p>
 
                       <p>Route: {route}</p>
@@ -239,7 +242,7 @@ export default function HomePage() {
 
                       <Button
                         asChild
-                        className="w-full bg-lau-green hover:bg-lau-dark"
+                        className="mt-auto w-full bg-lau-green hover:bg-lau-dark"
                       >
                         <Link to={`/rides/${ride._id}`}>View ride</Link>
                       </Button>
