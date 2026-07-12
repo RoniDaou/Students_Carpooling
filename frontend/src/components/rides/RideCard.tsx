@@ -1,16 +1,42 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Calendar,
+  Car,
+  Clock,
+  MapPin,
+  User,
+  Users,
+  UserPlus,
+} from "lucide-react";
 
 import { Ride } from "@/types";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { formatDate, formatTime } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useRides } from "@/contexts/RideContext";
 import { useToast } from "@/hooks/use-toast";
-import { Car, Calendar, Clock, MapPin, User, Users, UserPlus } from "lucide-react";
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 interface RideCardProps {
   ride: Ride;
@@ -20,12 +46,56 @@ interface RideCardProps {
 export default function RideCard({ ride, showActions = true }: RideCardProps) {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRequesting, setIsRequesting] = useState(false);
+
   const { isAuthenticated, user, userRole } = useAuth();
+  const { requestRide } = useRides();
   const { toast } = useToast();
   const navigate = useNavigate();
 
+  const driver = typeof ride.driverId === "string" ? null : ride.driverId;
+
+  const driverId =
+    typeof ride.driverId === "string" ? ride.driverId : ride.driverId?._id;
+
+  const driverName = driver
+    ? `${driver.first_name} ${driver.last_name}`
+    : "Driver";
+
+  const driverInitials = driverName
+    .split(" ")
+    .map((name) => name.charAt(0))
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  const rideDate = ride.date ? new Date(ride.date) : null;
+
+  const hasValidDate = rideDate && !Number.isNaN(rideDate.getTime());
+
+  const formattedDate = hasValidDate
+    ? rideDate.toLocaleDateString("en-US", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : "Date unavailable";
+
+  const formattedTime = hasValidDate
+    ? rideDate.toLocaleTimeString("en-US", {
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "Time unavailable";
+
+  const canRequestRide =
+    isAuthenticated &&
+    userRole === "passenger" &&
+    ride.availableSeats > 0 &&
+    user?.id !== driverId;
+
   const handleViewRide = () => {
-    navigate(`/rides/${ride.id}`);
+    navigate(`/rides/${ride._id}`);
   };
 
   const handleRequestRide = async () => {
@@ -35,147 +105,183 @@ export default function RideCard({ ride, showActions = true }: RideCardProps) {
     }
 
     setIsRequesting(true);
-    
-    // Simulate API request
-    setTimeout(() => {
-      setIsRequesting(false);
-      setIsDialogOpen(false);
-      
+
+    try {
+      await requestRide(ride._id);
+
       toast({
         title: "Ride requested",
         description: "Your request has been sent to the driver.",
       });
-    }, 1000);
-  };
 
-  const canRequestRide = isAuthenticated && 
-    userRole === 'passenger' && 
-    ride.availableSeats > 0 && 
-    user?.id !== ride.driverId && 
-    (!ride.isFemaleOnly || (ride.isFemaleOnly && user?.gender === 'female'));
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast({
+        title: "Request failed",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Could not request this ride.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRequesting(false);
+    }
+  };
 
   return (
     <>
-      <Card className="overflow-hidden hover:shadow-md transition-shadow card-hover">
+      <Card className="overflow-hidden hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
-          <div className="flex justify-between items-start">
+          <div className="flex justify-between items-start gap-3">
             <div>
               <CardTitle className="text-lg flex items-center">
-                <MapPin className="w-5 h-5 inline mr-1 text-lau-green" />
-                {ride.departureLocation} to {ride.destination}
+                <MapPin className="w-5 h-5 mr-1 text-lau-green" />
+                {ride.pickupLocation} to {ride.destination}
               </CardTitle>
-              <CardDescription className="flex items-center mt-1">
-                <Calendar className="w-4 h-4 inline mr-1" />
-                {formatDate(ride.departureDate)}
-                <span className="mx-1">•</span>
-                <Clock className="w-4 h-4 inline mr-1" /> 
-                {formatTime(ride.departureTime)}
+
+              <CardDescription className="flex flex-wrap items-center mt-2">
+                <Calendar className="w-4 h-4 mr-1" />
+                {formattedDate}
+
+                <span className="mx-2">•</span>
+
+                <Clock className="w-4 h-4 mr-1" />
+                {formattedTime}
               </CardDescription>
             </div>
-            
+
             {ride.isFemaleOnly && (
-              <Badge variant="outline" className="border-pink-300 text-pink-500">
+              <Badge
+                variant="outline"
+                className="border-pink-300 text-pink-500"
+              >
                 Female Only
               </Badge>
             )}
           </div>
         </CardHeader>
-        
+
         <CardContent className="pb-2">
           <div className="flex flex-col space-y-3">
             <div className="flex items-center gap-2">
               <Car className="w-4 h-4 text-gray-500" />
+
               <span className="text-sm">
-                {ride.driver?.vehicleInfo.color} {ride.driver?.vehicleInfo.make} {ride.driver?.vehicleInfo.model}
+                Route: {ride.route || "Not provided"}
               </span>
             </div>
-            
+
             <div className="flex items-center gap-2">
               <User className="w-4 h-4 text-gray-500" />
-              <span className="text-sm">Driver: {ride.driver?.fullName}</span>
+
+              <span className="text-sm">Driver: {driverName}</span>
             </div>
-            
+
+            {driver?.vehicleNumber && (
+              <div className="flex items-center gap-2">
+                <Car className="w-4 h-4 text-gray-500" />
+
+                <span className="text-sm">Vehicle: {driver.vehicleNumber}</span>
+              </div>
+            )}
+
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-gray-500" />
-              <span className="text-sm">{ride.availableSeats} seats available</span>
+
+              <span className="text-sm">
+                {ride.availableSeats} seats available
+              </span>
             </div>
-            
+
             {ride.notes && (
-              <div className="text-sm text-gray-600 mt-2">
+              <div className="text-sm text-gray-600">
                 <span className="font-medium">Note:</span> {ride.notes}
               </div>
             )}
           </div>
         </CardContent>
-        
+
         <CardFooter className="pt-2">
-          <div className="flex justify-between w-full">
+          <div className="flex justify-between gap-3 w-full">
             <Button variant="outline" size="sm" onClick={handleViewRide}>
               View Details
             </Button>
-            
+
             {showActions && canRequestRide && (
-              <Button 
-                size="sm" 
-                onClick={() => setIsDialogOpen(true)}
+              <Button
+                size="sm"
                 className="bg-lau-green hover:bg-lau-dark"
+                onClick={() => setIsDialogOpen(true)}
               >
-                <UserPlus className="w-4 h-4 mr-1" /> Request Ride
+                <UserPlus className="w-4 h-4 mr-1" />
+                Request Ride
               </Button>
             )}
           </div>
         </CardFooter>
       </Card>
-      
+
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Request Ride</DialogTitle>
+
             <DialogDescription>
               Are you sure you want to request this ride?
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-4">
             <div className="flex items-start space-x-4">
               <Avatar>
-                <AvatarImage src={ride.driver?.profileImage} />
-                <AvatarFallback>{ride.driver?.fullName.substring(0, 2).toUpperCase()}</AvatarFallback>
+                <AvatarFallback>{driverInitials}</AvatarFallback>
               </Avatar>
-              
+
               <div>
-                <h4 className="font-medium">{ride.driver?.fullName}</h4>
-                <p className="text-sm text-muted-foreground">{ride.driver?.email}</p>
+                <h4 className="font-medium">{driverName}</h4>
+
+                {driver?.universityEmail && (
+                  <p className="text-sm text-muted-foreground">
+                    {driver.universityEmail}
+                  </p>
+                )}
               </div>
             </div>
-            
+
             <div className="border rounded-md p-3 bg-muted/50">
               <div className="text-sm space-y-2">
-                <p><span className="font-medium">From:</span> {ride.departureLocation}</p>
-                <p><span className="font-medium">To:</span> {ride.destination}</p>
-                <p><span className="font-medium">Date:</span> {formatDate(ride.departureDate)}</p>
-                <p><span className="font-medium">Time:</span> {formatTime(ride.departureTime)}</p>
+                <p>
+                  <span className="font-medium">From:</span>{" "}
+                  {ride.pickupLocation}
+                </p>
+
+                <p>
+                  <span className="font-medium">To:</span> {ride.destination}
+                </p>
+
+                <p>
+                  <span className="font-medium">Date:</span> {formattedDate}
+                </p>
+
+                <p>
+                  <span className="font-medium">Time:</span> {formattedTime}
+                </p>
               </div>
             </div>
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleRequestRide}
+
+            <Button
               disabled={isRequesting}
               className="bg-lau-green hover:bg-lau-dark"
+              onClick={handleRequestRide}
             >
-              {isRequesting ? (
-                <>
-                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  Requesting...
-                </>
-              ) : (
-                "Confirm Request"
-              )}
+              {isRequesting ? "Requesting..." : "Confirm Request"}
             </Button>
           </DialogFooter>
         </DialogContent>

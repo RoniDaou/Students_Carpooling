@@ -5,10 +5,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRides } from "@/contexts/RideContext";
 import { UserPlus, Car, MapPin, ArrowRight } from "lucide-react";
 import RideCard from "@/components/rides/RideCard";
+import { Ride } from "@/types";
 export default function HomePage() {
   const { isAuthenticated, userRole } = useAuth();
   const { rides } = useRides();
-  const [featuredRides, setFeaturedRides] = useState([]);
+  const [featuredRides, setFeaturedRides] = useState<Ride[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Update featured rides when rides change
@@ -159,7 +160,7 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {featuredRides.map((ride) => (
-              <RideCard key={ride.id} ride={ride} />
+              <RideCard key={ride._id} ride={ride} />
             ))}
           </div>
         </div>
