@@ -1,0 +1,10 @@
+const router = require("express").Router();
+const auth = require("../middlewares/requireAuth");
+const { upload } = require("../middlewares/upload");
+const c = require("../controllers/userController");
+router.post("/login", c.loginUser);
+router.post("/signup", upload.fields([{name:"studentIdPic",maxCount:1},{name:"driverLicensePic",maxCount:1}]), c.signupUser);
+router.get("/me", auth, c.getMe);
+router.patch("/updateInfo", auth, c.updateInfo);
+router.get("/generate-qr", auth, c.generateQRCode);
+module.exports = router;

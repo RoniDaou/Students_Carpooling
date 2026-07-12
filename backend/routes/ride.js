@@ -1,0 +1,17 @@
+const router = require("express").Router();
+const auth = require("../middlewares/requireAuth");
+const c = require("../controllers/rideController");
+router.use(auth);
+router.get("/", c.getRides);
+router.get("/mine", c.getDriverRides);
+router.get("/requests/mine", c.getMyRequests);
+router.get("/:rideId/requests", c.getRideRequests);
+router.get("/:rideId", c.getSpecificRide);
+router.post("/", c.addRide);
+router.delete("/:rideId", c.deleteRide);
+router.post("/request", c.requestRide);
+router.patch("/request/respond", c.respondToRequest);
+router.patch("/:rideId/punch-in", c.punchInRide);
+router.patch("/:rideId/punch-out", c.punchOutRide);
+router.post("/sos", c.triggerSOS);
+module.exports = router;
