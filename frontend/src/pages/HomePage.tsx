@@ -3,7 +3,13 @@ import { Link } from "react-router-dom";
 import { UserPlus, Car, MapPin, ArrowRight } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRides } from "@/contexts/RideContext";
@@ -44,9 +50,10 @@ function getDriverName(driverId: Ride["driverId"] | null | undefined) {
 export default function HomePage() {
   const { isAuthenticated, userRole } = useAuth();
   const { rides } = useRides();
+
   const [isLoaded, setIsLoaded] = useState(false);
 
-  const featuredRides = Array.isArray(rides)
+  const featuredRides: Ride[] = Array.isArray(rides)
     ? rides
         .filter((ride): ride is Ride => Boolean(ride && ride._id))
         .slice(0, 3)
@@ -200,10 +207,10 @@ export default function HomePage() {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid auto-rows-fr grid-cols-1 items-stretch gap-6 md:grid-cols-2 lg:grid-cols-3">
             {featuredRides.length === 0 ? (
               <p className="text-gray-600 md:col-span-2 lg:col-span-3">
-                Visit Find a Ride to view the latest available rides.
+                No available rides at the moment.
               </p>
             ) : (
               featuredRides.map((ride) => {
@@ -226,12 +233,12 @@ export default function HomePage() {
                     className="flex h-full flex-col overflow-hidden"
                   >
                     <CardHeader>
-                      <CardTitle className="text-lg">
+                      <CardTitle className="line-clamp-3 text-lg">
                         {pickupLocation} → {destination}
                       </CardTitle>
                     </CardHeader>
 
-                    <CardContent className="flex flex-1 flex-col space-y-2">
+                    <CardContent className="flex-1 space-y-4">
                       <p>{formatRideDate(ride.date)}</p>
 
                       <p>Route: {route}</p>
@@ -239,14 +246,16 @@ export default function HomePage() {
                       <p>Seats: {seats}</p>
 
                       <p>Driver: {getDriverName(ride.driverId)}</p>
+                    </CardContent>
 
+                    <CardFooter className="mt-auto pt-0">
                       <Button
                         asChild
-                        className="mt-auto w-full bg-lau-green hover:bg-lau-dark"
+                        className="w-full bg-lau-green hover:bg-lau-dark"
                       >
                         <Link to={`/rides/${ride._id}`}>View ride</Link>
                       </Button>
-                    </CardContent>
+                    </CardFooter>
                   </Card>
                 );
               })
