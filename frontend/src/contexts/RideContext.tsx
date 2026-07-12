@@ -1,86 +1,153 @@
-import { useEffect } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 
-import { useAuth } from "@/contexts/AuthContext";
-import { useRides } from "@/contexts/RideContext";
-import { useToast } from "@/hooks/use-toast";
-import type { RideRequestStatus } from "@/types";
+import type { Ride, RideRequest, RideRequestStatus } from "@/types";
 
-export default function RideRequestNotifier() {
-  const { isAuthenticated, user, userRole } = useAuth();
-  const { myRequests } = useRides();
-  const { toast } = useToast();
+import { api } from "@/lib/api";
 
-  useEffect(() => {
-    if (!isAuthenticated || !user || userRole !== "passenger") {
-      return;
+interface RideContextValue {
+  rides: Ride[];
+  loading: boolean;
+
+  loadRides: () => Promise<void>;
+  getRide: (id: string) => Promise<Ride>;
+  addRide: (data: Partial<Ride>) => Promise<Ride>;
+  deleteRide: (id: string) => Promise<void>;
+
+  requestRide: (id: string) => Promise<RideRequest>;
+  myRequests: () => Promise<RideRequest[]>;
+  driverRequests: () => Promise<RideRequest[]>;
+
+  respondToRequest: (
+    requestId: string,
+    action: Exclude<RideRequestStatus, "pending">,
+  ) => Promise<RideRequest>;
+}
+
+const RideContext = createContext<RideContextValue | undefined>(undefined);
+
+interface RideProviderProps {
+  children: ReactNode;
+}
+
+export function RideProvider({ children }: RideProviderProps) {
+  const [rides, setRides] = useState<Ride[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadRides = useCallback(async () => {
+    setLoading(true);
+
+    try {
+      const result = await api<Ride[]>("/rides");
+
+      setRides(Array.isArray(result) ? result : []);
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    let cancelled = false;
-    const storageKey = `ride-request-statuses:${user.id}`;
+  const getRide = useCallback(async (id: string) => {
+    return api<Ride>(`/rides/${id}`);
+  }, []);
 
-    const checkForUpdates = async () => {
-      try {
-        const requests = await myRequests();
+  const addRide = useCallback(async (data: Partial<Ride>) => {
+    const createdRide = await api<Ride>("/rides", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
 
-        if (cancelled) return;
+    setRides((current) => [createdRide, ...current]);
 
-        const savedStatuses = JSON.parse(
-          localStorage.getItem(storageKey) || "{}",
-        ) as Record<string, RideRequestStatus>;
+    return createdRide;
+  }, []);
 
-        const nextStatuses: Record<string, RideRequestStatus> = {};
+  const deleteRide = useCallback(async (id: string) => {
+    await api(`/rides/${id}`, {
+      method: "DELETE",
+    });
 
-        requests.forEach((request) => {
-          nextStatuses[request._id] = request.status;
+    setRides((current) => current.filter((ride) => ride._id !== id));
+  }, []);
 
-          const previousStatus = savedStatuses[request._id];
-          const statusChanged =
-            previousStatus && previousStatus !== request.status;
-          const firstSeenDecision =
-            !previousStatus && request.status !== "pending";
+  const requestRide = useCallback(async (id: string) => {
+    return api<RideRequest>("/rides/request", {
+      method: "POST",
+      body: JSON.stringify({
+        rideId: id,
+      }),
+    });
+  }, []);
 
-          if (statusChanged || firstSeenDecision) {
-            const ride =
-              request.rideId && typeof request.rideId !== "string"
-                ? request.rideId
-                : null;
+  const myRequests = useCallback(async () => {
+    const result = await api<RideRequest[]>("/rides/requests/mine");
 
-            const routeText = ride
-              ? `${ride.pickupLocation} → ${ride.destination}`
-              : "your ride request";
+    return Array.isArray(result) ? result : [];
+  }, []);
 
-            toast({
-              title:
-                request.status === "accepted"
-                  ? "Ride request accepted"
-                  : "Ride request rejected",
-              description:
-                request.status === "accepted"
-                  ? `The driver accepted ${routeText}.`
-                  : `The driver rejected ${routeText}.`,
-              variant:
-                request.status === "rejected" ? "destructive" : "default",
-            });
-          }
-        });
+  const driverRequests = useCallback(async () => {
+    const result = await api<RideRequest[]>("/rides/requests/driver");
 
-        localStorage.setItem(storageKey, JSON.stringify(nextStatuses));
-      } catch (error) {
-        console.error("Could not check ride request updates:", error);
-      }
-    };
+    return Array.isArray(result) ? result : [];
+  }, []);
 
-    void checkForUpdates();
+  const respondToRequest = useCallback(
+    async (
+      requestId: string,
+      action: Exclude<RideRequestStatus, "pending">,
+    ) => {
+      return api<RideRequest>("/rides/request/respond", {
+        method: "PATCH",
+        body: JSON.stringify({
+          requestId,
+          action,
+        }),
+      });
+    },
+    [],
+  );
 
-    const intervalId = window.setInterval(() => {
-      void checkForUpdates();
-    }, 8000);
+  const value = useMemo<RideContextValue>(
+    () => ({
+      rides,
+      loading,
+      loadRides,
+      getRide,
+      addRide,
+      deleteRide,
+      requestRide,
+      myRequests,
+      driverRequests,
+      respondToRequest,
+    }),
+    [
+      rides,
+      loading,
+      loadRides,
+      getRide,
+      addRide,
+      deleteRide,
+      requestRide,
+      myRequests,
+      driverRequests,
+      respondToRequest,
+    ],
+  );
 
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-    };
-  }, [isAuthenticated, myRequests, toast, user, userRole]);
+  return <RideContext.Provider value={value}>{children}</RideContext.Provider>;
+}
 
-  return null;
+export function useRides(): RideContextValue {
+  const context = useContext(RideContext);
+
+  if (!context) {
+    throw new Error("useRides must be used inside RideProvider");
+  }
+
+  return context;
 }

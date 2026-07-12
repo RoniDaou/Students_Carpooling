@@ -16,16 +16,19 @@ export default function RideRequestNotifier() {
     }
 
     let cancelled = false;
+
     const storageKey = `ride-request-statuses:${user.id}`;
 
     const checkForUpdates = async () => {
       try {
         const requests = await myRequests();
 
-        if (cancelled) return;
+        if (cancelled) {
+          return;
+        }
 
         const savedStatuses = JSON.parse(
-          localStorage.getItem(storageKey) || "{}"
+          localStorage.getItem(storageKey) || "{}",
         ) as Record<string, RideRequestStatus>;
 
         const nextStatuses: Record<string, RideRequestStatus> = {};
@@ -34,8 +37,10 @@ export default function RideRequestNotifier() {
           nextStatuses[request._id] = request.status;
 
           const previousStatus = savedStatuses[request._id];
+
           const statusChanged =
             previousStatus && previousStatus !== request.status;
+
           const firstSeenDecision =
             !previousStatus && request.status !== "pending";
 
@@ -54,22 +59,19 @@ export default function RideRequestNotifier() {
                 request.status === "accepted"
                   ? "Ride request accepted"
                   : "Ride request rejected",
+
               description:
                 request.status === "accepted"
                   ? `The driver accepted ${routeText}.`
                   : `The driver rejected ${routeText}.`,
+
               variant:
-                request.status === "rejected"
-                  ? "destructive"
-                  : "default",
+                request.status === "rejected" ? "destructive" : "default",
             });
           }
         });
 
-        localStorage.setItem(
-          storageKey,
-          JSON.stringify(nextStatuses)
-        );
+        localStorage.setItem(storageKey, JSON.stringify(nextStatuses));
       } catch (error) {
         console.error("Could not check ride request updates:", error);
       }
