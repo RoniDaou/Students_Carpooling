@@ -1,45 +1,83 @@
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { UserPlus, Car, MapPin, ArrowRight } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { useAuth } from "@/contexts/AuthContext";
 import { useRides } from "@/contexts/RideContext";
-import { UserPlus, Car, MapPin, ArrowRight } from "lucide-react";
-import RideCard from "@/components/rides/RideCard";
-import { Ride } from "@/types";
+import type { Ride } from "@/types";
+
+function formatRideDate(dateValue?: string) {
+  if (!dateValue) {
+    return "Date unavailable";
+  }
+
+  const rideDate = new Date(dateValue);
+
+  if (Number.isNaN(rideDate.getTime())) {
+    return "Date unavailable";
+  }
+
+  return rideDate.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function getDriverName(driverId: Ride["driverId"] | null | undefined) {
+  if (!driverId || typeof driverId === "string") {
+    return "Driver information unavailable";
+  }
+
+  const firstName = driverId.first_name?.trim() || "";
+  const lastName = driverId.last_name?.trim() || "";
+  const fullName = `${firstName} ${lastName}`.trim();
+
+  return fullName || "Driver information unavailable";
+}
+
 export default function HomePage() {
   const { isAuthenticated, userRole } = useAuth();
   const { rides } = useRides();
-  const [featuredRides, setFeaturedRides] = useState<Ride[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Update featured rides when rides change
-  useEffect(() => {
-    setFeaturedRides(rides.slice(0, 3));
-  }, [rides]);
+  const featuredRides = Array.isArray(rides)
+    ? rides
+        .filter((ride): ride is Ride => Boolean(ride && ride._id))
+        .slice(0, 3)
+    : [];
 
-  // Hook for animations
   useEffect(() => {
-    // Mark as loaded to prevent flashing
     setIsLoaded(true);
   }, []);
+
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex min-h-screen flex-col">
       {/* Hero Section */}
       <section
         id="hero-section"
-        className={`bg-gradient-to-r from-lau-green to-lau-dark py-16 md:py-24 transition-opacity duration-500 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+        className={`bg-gradient-to-r from-lau-green to-lau-dark py-16 transition-opacity duration-500 md:py-24 ${
+          isLoaded ? "opacity-100" : "opacity-0"
+        }`}
       >
         <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="md:w-1/2 text-white">
-              <h1 className="text-3xl md:text-5xl font-bold mb-4">
+          <div className="flex flex-col items-center justify-between md:flex-row">
+            <div className="text-white md:w-1/2">
+              <h1 className="mb-4 text-3xl font-bold md:text-5xl">
                 Share a Ride with LAU Students
               </h1>
-              <p className="text-lg md:text-xl mb-8">
+
+              <p className="mb-8 text-lg md:text-xl">
                 Connect with fellow students and share rides to and from campus
                 safely and conveniently.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4">
+
+              <div className="flex flex-col gap-4 sm:flex-row">
                 {isAuthenticated ? (
                   <>
                     <Button
@@ -49,6 +87,7 @@ export default function HomePage() {
                     >
                       <Link to="/rides">Find a Ride</Link>
                     </Button>
+
                     {userRole === "driver" && (
                       <Button
                         size="lg"
@@ -68,21 +107,20 @@ export default function HomePage() {
                     >
                       <Link to="/register">Get Started</Link>
                     </Button>
+
                     <Button
                       size="lg"
-                      variant="outline"
-                      className="border-white text-white hover:bg-white/10"
+                      className="bg-white text-lau-green hover:bg-gray-100"
                       asChild
                     >
-                      <Link to="/login" style={{ backgroundColor: "#3355" }}>
-                        Login
-                      </Link>
+                      <Link to="/login">Login</Link>
                     </Button>
                   </>
                 )}
               </div>
             </div>
-            <div className="md:w-1/3 mt-8 md:mt-0">
+
+            <div className="mt-8 md:mt-0 md:w-1/3">
               <img
                 src="/placeholder.png"
                 alt="Students sharing rides"
@@ -94,47 +132,47 @@ export default function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="py-16 bg-white">
+      <section className="bg-white py-16">
         <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+          <h2 className="mb-12 text-center text-3xl font-bold">How It Works</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="flex flex-col items-center text-center hover-scale">
-              <div className="w-20 h-20 bg-lau-light rounded-full mb-4 flex items-center justify-center">
-                <UserPlus className="w-10 h-10 text-lau-green" />
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+            <div className="hover-scale flex flex-col items-center text-center">
+              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-lau-light">
+                <UserPlus className="h-10 w-10 text-lau-green" />
               </div>
 
-              <h3 className="text-xl font-semibold mb-2">Create an Account</h3>
+              <h3 className="mb-2 text-xl font-semibold">Create an Account</h3>
 
-              <p className="text-gray-600 max-w-md">
+              <p className="max-w-md text-gray-600">
                 Sign up as a driver or passenger using your LAU email and verify
                 your identity.
               </p>
             </div>
 
-            <div className="flex flex-col items-center text-center hover-scale">
-              <div className="w-20 h-20 bg-lau-light rounded-full mb-4 flex items-center justify-center">
-                <Car className="w-10 h-10 text-lau-green" />
+            <div className="hover-scale flex flex-col items-center text-center">
+              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-lau-light">
+                <Car className="h-10 w-10 text-lau-green" />
               </div>
 
-              <h3 className="text-xl font-semibold mb-2">
+              <h3 className="mb-2 text-xl font-semibold">
                 Find or Offer Rides
               </h3>
 
-              <p className="text-gray-600 max-w-md">
+              <p className="max-w-md text-gray-600">
                 Search for available rides or offer your own to help fellow
                 students commute.
               </p>
             </div>
 
-            <div className="flex flex-col items-center text-center hover-scale">
-              <div className="w-20 h-20 bg-lau-light rounded-full mb-4 flex items-center justify-center">
-                <MapPin className="w-10 h-10 text-lau-green" />
+            <div className="hover-scale flex flex-col items-center text-center">
+              <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-lau-light">
+                <MapPin className="h-10 w-10 text-lau-green" />
               </div>
 
-              <h3 className="text-xl font-semibold mb-2">Travel Together</h3>
+              <h3 className="mb-2 text-xl font-semibold">Travel Together</h3>
 
-              <p className="text-gray-600 max-w-md">
+              <p className="max-w-md text-gray-600">
                 Connect safely via QR verification, save money, reduce traffic,
                 and make new friends.
               </p>
@@ -146,62 +184,114 @@ export default function HomePage() {
       {/* Featured Rides */}
       <section
         id="featured-section"
-        className={`py-16 bg-gray-50 transition-opacity duration-500 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+        className={`bg-gray-50 py-16 transition-opacity duration-500 ${
+          isLoaded ? "opacity-100" : "opacity-0"
+        }`}
       >
         <div className="container mx-auto px-6">
-          <div className="flex justify-between items-center mb-8">
+          <div className="mb-8 flex items-center justify-between">
             <h2 className="text-2xl font-bold">Featured Rides</h2>
+
             <Button variant="ghost" asChild>
               <Link to="/rides" className="flex items-center">
-                View all <ArrowRight className="w-4 h-4 ml-1" />
+                View all
+                <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {featuredRides.map((ride) => (
-              <RideCard key={ride._id} ride={ride} />
-            ))}
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {featuredRides.length === 0 ? (
+              <p className="text-gray-600 md:col-span-2 lg:col-span-3">
+                Visit Find a Ride to view the latest available rides.
+              </p>
+            ) : (
+              featuredRides.map((ride) => {
+                const pickupLocation =
+                  ride.pickupLocation?.trim() || "Unknown pickup";
+
+                const destination =
+                  ride.destination?.trim() || "Unknown destination";
+
+                const route = ride.route?.trim() || "Not provided";
+
+                const seats =
+                  typeof ride.availableSeats === "number"
+                    ? ride.availableSeats
+                    : 0;
+
+                return (
+                  <Card key={ride._id} className="overflow-hidden">
+                    <CardHeader>
+                      <CardTitle className="text-lg">
+                        {pickupLocation} → {destination}
+                      </CardTitle>
+                    </CardHeader>
+
+                    <CardContent className="space-y-2">
+                      <p>{formatRideDate(ride.date)}</p>
+
+                      <p>Route: {route}</p>
+
+                      <p>Seats: {seats}</p>
+
+                      <p>Driver: {getDriverName(ride.driverId)}</p>
+
+                      <Button
+                        asChild
+                        className="w-full bg-lau-green hover:bg-lau-dark"
+                      >
+                        <Link to={`/rides/${ride._id}`}>View ride</Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            )}
           </div>
         </div>
       </section>
 
       {/* Benefits Section */}
-      <section className="py-16 bg-white">
+      <section className="bg-white py-16">
         <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">
+          <h2 className="mb-12 text-center text-3xl font-bold">
             Why Share a Ride?
           </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="bg-lau-light rounded-lg p-6 hover-scale">
-              <h3 className="text-xl font-semibold mb-3">Save Money</h3>
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2">
+            <div className="hover-scale rounded-lg bg-lau-light p-6">
+              <h3 className="mb-3 text-xl font-semibold">Save Money</h3>
+
               <p className="text-gray-600">
                 Split fuel and parking costs with fellow students, making
                 commuting more affordable for everyone.
               </p>
             </div>
 
-            <div className="bg-lau-light rounded-lg p-6 hover-scale">
-              <h3 className="text-xl font-semibold mb-3">Reduce Stress</h3>
+            <div className="hover-scale rounded-lg bg-lau-light p-6">
+              <h3 className="mb-3 text-xl font-semibold">Reduce Stress</h3>
+
               <p className="text-gray-600">
                 Avoid the hassle of finding parking and navigating traffic
                 alone. Share the driving responsibility.
               </p>
             </div>
 
-            <div className="bg-lau-light rounded-lg p-6 hover-scale">
-              <h3 className="text-xl font-semibold mb-3">
+            <div className="hover-scale rounded-lg bg-lau-light p-6">
+              <h3 className="mb-3 text-xl font-semibold">
                 Environmental Impact
               </h3>
+
               <p className="text-gray-600">
                 Reduce carbon emissions by sharing rides and contributing to a
                 greener campus environment.
               </p>
             </div>
 
-            <div className="bg-lau-light rounded-lg p-6 hover-scale">
-              <h3 className="text-xl font-semibold mb-3">Community Building</h3>
+            <div className="hover-scale rounded-lg bg-lau-light p-6">
+              <h3 className="mb-3 text-xl font-semibold">Community Building</h3>
+
               <p className="text-gray-600">
                 Connect with fellow LAU students, build relationships, and
                 strengthen our university community.
@@ -212,10 +302,11 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-16 bg-lau-green text-white">
+      <section className="bg-lau-green py-16 text-white">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-6">Ready to Share a Ride?</h2>
-          <p className="text-xl mb-8 max-w-2xl mx-auto">
+          <h2 className="mb-6 text-3xl font-bold">Ready to Share a Ride?</h2>
+
+          <p className="mx-auto mb-8 max-w-2xl text-xl">
             Join our community of LAU students sharing rides to make commuting
             easier, cheaper, and more sustainable.
           </p>
@@ -242,9 +333,3 @@ export default function HomePage() {
     </div>
   );
 }
-// function User(props: any) {
-//   return <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-//       <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
-//       <circle cx="12" cy="7" r="4" />
-//     </svg>;
-// }
