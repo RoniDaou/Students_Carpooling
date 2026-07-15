@@ -1,59 +1,197 @@
+# LAU Ride
 
+LAU Ride is a full-stack student carpooling platform designed to help university students find, offer, and manage shared rides safely and efficiently.
 
-**Use your preferred IDE**
+The application includes user authentication, ride publishing, ride searching, passenger requests, driver approval workflows, profile management, and emergency support features.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Technology Stack
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Frontend
 
-Follow these steps:
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- React Router
+- Axios
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Backend
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JSON Web Token authentication
+- Multer
+- QR Code integration
 
-# Step 3: Install the necessary dependencies.
-npm i
+## Project Structure
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+```text
+Students_Carpooling/
+├── backend/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routes/
+│   ├── uploads/
+│   ├── .env
+│   └── package.json
+│
+├── frontend/
+│   ├── public/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── contexts/
+│   │   ├── pages/
+│   │   └── services/
+│   ├── .env
+│   └── package.json
+│
+└── README.md
+```
+
+## Environment Variables
+
+Create a `.env` file inside the `backend` folder:
+
+```env
+PORT=5000
+MONGO_URI=your_mongodb_connection_string
+JWT_SECRET=your_secure_jwt_secret
+FRONTEND_URL=https://your-frontend-domain.com
+```
+
+Create a `.env` file inside the `frontend` folder:
+
+```env
+VITE_API_URL=https://your-backend-domain.com
+```
+
+Do not commit `.env` files or production credentials to GitHub.
+
+## Local Development
+
+### Install and run the backend
+
+```bash
+cd backend
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Install and run the frontend
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Open another terminal:
 
-**Use GitHub Codespaces**
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+The frontend will normally run on:
 
-## What technologies are used for this project?
+```text
+http://localhost:5173
+```
 
-This project is built with:
+The backend will normally run on:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```text
+http://localhost:5000
+```
 
-## How can I deploy this project?
+## Production Build
 
-Simply open [Lovable](https://lovable.dev/projects/a807a0cc-c7f3-418d-bec8-a68dad86c0ec) and click on Share -> Publish.
+Build the frontend with:
 
-## Can I connect a custom domain to my Lovable project?
+```bash
+cd frontend
+npm install
+npm run build
+```
 
-Yes, you can!
+The optimized production files will be generated inside:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+```text
+frontend/dist
+```
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Preview the production build locally:
+
+```bash
+npm run preview
+```
+
+## Production Deployment
+
+A recommended deployment setup is:
+
+- Frontend: Vercel, Netlify, or Cloudflare Pages
+- Backend: Render, Railway, Fly.io, or a VPS
+- Database: MongoDB Atlas
+
+### Frontend deployment
+
+1. Set the project root directory to `frontend`.
+2. Use the following build command:
+
+```bash
+npm run build
+```
+
+3. Set the output directory to:
+
+```text
+dist
+```
+
+4. Add the production environment variable:
+
+```env
+VITE_API_URL=https://your-backend-domain.com
+```
+
+### Backend deployment
+
+1. Set the project root directory to `backend`.
+2. Use the following install command:
+
+```bash
+npm install
+```
+
+3. Use the following start command:
+
+```bash
+npm start
+```
+
+4. Add all backend environment variables through the hosting provider dashboard.
+
+## Production Checklist
+
+Before deployment, verify that:
+
+- MongoDB Atlas network access is configured.
+- Production environment variables are added.
+- CORS allows only the production frontend domain.
+- JWT secrets are strong and private.
+- Uploaded files are stored persistently.
+- HTTPS is enabled.
+- API URLs do not reference `localhost`.
+- Frontend and backend production builds run successfully.
+- Sensitive files are excluded using `.gitignore`.
+
+## Git Commands
+
+```bash
+git add .
+git commit -m "Prepare LAU Ride for production deployment"
+git push origin main
+```
+
+## License
+
+This project was developed as an academic software engineering project. Unauthorized commercial redistribution may require permission from the project owners.
