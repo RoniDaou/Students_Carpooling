@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -23,7 +23,7 @@ export default function SOSButton({ rideId }: { rideId?: string }) {
     } catch (error) {
       toast({
         title: "SOS failed",
-        description: (error as Error).message,
+        description: error instanceof Error ? error.message : "Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -34,11 +34,14 @@ export default function SOSButton({ rideId }: { rideId?: string }) {
   return (
     <Button
       variant="destructive"
-      className="fixed bottom-6 right-6 rounded-full w-14 h-14"
+      className="fixed bottom-5 right-5 z-40 h-12 rounded-full px-4 shadow-[0_12px_35px_rgba(220,38,38,0.3)] sm:bottom-6 sm:right-6"
       disabled={busy}
-      onClick={sendSOS}
+      onClick={() => void sendSOS()}
+      aria-label="Send emergency SOS alert"
+      title="Send SOS alert"
     >
       <AlertTriangle />
+      <span className="hidden sm:inline">SOS</span>
     </Button>
   );
 }

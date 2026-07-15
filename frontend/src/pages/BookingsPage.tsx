@@ -1,22 +1,23 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Check,
-  Clock,
+  CheckCircle2,
+  Clock3,
   Mail,
   MapPin,
   Phone,
+  RefreshCw,
+  Route,
+  UserRound,
+  UsersRound,
   X,
+  XCircle,
 } from "lucide-react";
 
 import Layout from "@/components/layout/Layout";
+import PageHeader from "@/components/common/PageHeader";
+import EmptyState from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRides } from "@/contexts/RideContext";
 import { useToast } from "@/hooks/use-toast";
@@ -28,50 +29,58 @@ import type {
   RideRequestStatus,
 } from "@/types";
 
-const statusClasses: Record<RideRequestStatus, string> = {
-  pending: "border-amber-300 bg-amber-50 text-amber-700",
-  accepted: "border-green-300 bg-green-50 text-green-700",
-  rejected: "border-red-300 bg-red-50 text-red-700",
+const statusConfig: Record<
+  RideRequestStatus,
+  { label: string; className: string; icon: typeof Clock3 }
+> = {
+  pending: {
+    label: "Pending",
+    className: "border-amber-200 bg-amber-50 text-amber-700",
+    icon: Clock3,
+  },
+  accepted: {
+    label: "Accepted",
+    className: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    icon: CheckCircle2,
+  },
+  rejected: {
+    label: "Rejected",
+    className: "border-red-200 bg-red-50 text-red-700",
+    icon: XCircle,
+  },
 };
 
 function getRide(request: RideRequest): Ride | null {
-  return request.rideId && typeof request.rideId !== "string"
-    ? request.rideId
-    : null;
+  return request.rideId && typeof request.rideId !== "string" ? request.rideId : null;
 }
 
-function getPassenger(
-  request: RideRequest
-): PassengerSummary | null {
-  return request.passengerId &&
-    typeof request.passengerId !== "string"
+function getPassenger(request: RideRequest): PassengerSummary | null {
+  return request.passengerId && typeof request.passengerId !== "string"
     ? request.passengerId
     : null;
 }
 
 function getDriver(ride: Ride | null): DriverSummary | null {
-  return ride?.driverId && typeof ride.driverId !== "string"
-    ? ride.driverId
-    : null;
+  return ride?.driverId && typeof ride.driverId !== "string" ? ride.driverId : null;
 }
 
 function formatDate(value?: string) {
   if (!value) return "Date unavailable";
-
   const date = new Date(value);
-
   return Number.isNaN(date.getTime())
     ? "Date unavailable"
-    : date.toLocaleString();
+    : date.toLocaleString("en-US", {
+        weekday: "short",
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
 }
 
 export default function BookingsPage() {
   const { userRole } = useAuth();
-  const {
-    myRequests,
-    driverRequests,
-    respondToRequest,
-  } = useRides();
+  const { myRequests, driverRequests, respondToRequest } = useRides();
   const { toast } = useToast();
 
   const [items, setItems] = useState<RideRequest[]>([]);
@@ -80,19 +89,12 @@ export default function BookingsPage() {
 
   const loadRequests = useCallback(async () => {
     try {
-      const result =
-        userRole === "driver"
-          ? await driverRequests()
-          : await myRequests();
-
+      const result = userRole === "driver" ? await driverRequests() : await myRequests();
       setItems(result);
     } catch (error) {
       toast({
         title: "Could not load requests",
-        description:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
@@ -102,49 +104,31 @@ export default function BookingsPage() {
 
   useEffect(() => {
     void loadRequests();
-
-    const intervalId = window.setInterval(() => {
-      void loadRequests();
-    }, 5000);
-
+    const intervalId = window.setInterval(() => void loadRequests(), 5000);
     return () => window.clearInterval(intervalId);
   }, [loadRequests]);
 
   const handleResponse = async (
     requestId: string,
-    action: "accepted" | "rejected"
+    action: "accepted" | "rejected",
   ) => {
     setActingId(requestId);
-
     try {
-      const updatedRequest = await respondToRequest(
-        requestId,
-        action
-      );
-
+      const updatedRequest = await respondToRequest(requestId, action);
       setItems((current) =>
-        current.map((request) =>
-          request._id === requestId ? updatedRequest : request
-        )
+        current.map((request) => (request._id === requestId ? updatedRequest : request)),
       );
-
       toast({
-        title:
-          action === "accepted"
-            ? "Request accepted"
-            : "Request rejected",
+        title: action === "accepted" ? "Request accepted" : "Request rejected",
         description:
           action === "accepted"
-            ? "The passenger can now see that the ride was accepted."
-            : "The passenger can now see that the ride was rejected.",
+            ? "The passenger can now see the accepted status and your contact details."
+            : "The passenger can now see that the request was rejected.",
       });
     } catch (error) {
       toast({
         title: "Could not update request",
-        description:
-          error instanceof Error
-            ? error.message
-            : "An unexpected error occurred.",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
         variant: "destructive",
       });
     } finally {
@@ -152,174 +136,189 @@ export default function BookingsPage() {
     }
   };
 
+  const isDriver = userRole === "driver";
+
   return (
     <Layout>
-      <div className="container mx-auto p-6">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-3xl font-bold">
-              {userRole === "driver"
-                ? "Passenger requests"
-                : "My ride requests"}
-            </h1>
-
-            <p className="mt-1 text-gray-600">
-              {userRole === "driver"
-                ? "Accept or reject passengers who requested your rides."
-                : "The status updates automatically after the driver responds."}
-            </p>
-          </div>
-
+      <PageHeader
+        eyebrow={isDriver ? "Driver inbox" : "Passenger activity"}
+        title={isDriver ? "Passenger requests" : "My ride requests"}
+        description={
+          isDriver
+            ? "Review passengers who requested your rides and respond from one organized workspace."
+            : "Track every request and see when a driver accepts or rejects your ride."
+        }
+        action={
           <Button variant="outline" onClick={() => void loadRequests()}>
-            Refresh
+            <RefreshCw /> Refresh
           </Button>
-        </div>
+        }
+      />
 
+      <section className="page-container py-10 md:py-14">
         {loading ? (
-          <p>Loading requests...</p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="surface flex min-h-[320px] items-center justify-center">
+            <div className="text-center">
+              <RefreshCw className="mx-auto h-6 w-6 animate-spin text-lau-green" />
+              <p className="mt-3 text-sm font-semibold text-zinc-600">Loading requests…</p>
+            </div>
+          </div>
+        ) : items.length > 0 ? (
+          <div className="grid gap-5 lg:grid-cols-2">
             {items.map((request) => {
               const ride = getRide(request);
               const passenger = getPassenger(request);
               const driver = getDriver(ride);
+              const status = statusConfig[request.status];
+              const StatusIcon = status.icon;
+              const passengerName = passenger
+                ? `${passenger.first_name} ${passenger.last_name}`.trim()
+                : "Passenger";
+              const driverName = driver
+                ? `${driver.first_name} ${driver.last_name}`.trim()
+                : "Driver information unavailable";
 
               return (
-                <Card key={request._id}>
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-3">
-                      <CardTitle className="text-lg">
-                        {ride
-                          ? `${ride.pickupLocation} → ${ride.destination}`
-                          : "Ride unavailable"}
-                      </CardTitle>
-
-                      <Badge
-                        variant="outline"
-                        className={statusClasses[request.status]}
-                      >
-                        {request.status}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="space-y-3">
-                    <p className="flex items-center gap-2 text-sm">
-                      <Clock className="h-4 w-4 text-gray-500" />
-                      {formatDate(ride?.date)}
-                    </p>
-
-                    {ride && (
-                      <p className="flex items-center gap-2 text-sm">
-                        <MapPin className="h-4 w-4 text-gray-500" />
-                        {ride.route}
+                <article key={request._id} className="surface overflow-hidden">
+                  <div className="flex items-start justify-between gap-4 border-b border-zinc-100 p-6">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-[0.15em] text-zinc-400">
+                        Ride request
                       </p>
-                    )}
+                      <h2 className="mt-2 text-xl font-bold leading-tight text-zinc-950">
+                        {ride ? `${ride.pickupLocation} to ${ride.destination}` : "Ride unavailable"}
+                      </h2>
+                    </div>
+                    <span className={`status-pill shrink-0 ${status.className}`}>
+                      <StatusIcon className="mr-1.5 h-3.5 w-3.5" />
+                      {status.label}
+                    </span>
+                  </div>
 
-                    {userRole === "driver" ? (
+                  <div className="p-6">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-xl bg-zinc-50 p-3.5">
+                        <p className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
+                          <Clock3 className="h-3.5 w-3.5" /> Schedule
+                        </p>
+                        <p className="mt-1.5 text-sm font-bold text-zinc-950">
+                          {formatDate(ride?.date)}
+                        </p>
+                      </div>
+                      <div className="rounded-xl bg-zinc-50 p-3.5">
+                        <p className="flex items-center gap-2 text-xs font-semibold text-zinc-500">
+                          <Route className="h-3.5 w-3.5" /> Route
+                        </p>
+                        <p className="mt-1.5 line-clamp-2 text-sm font-bold text-zinc-950">
+                          {ride?.route || "Route unavailable"}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isDriver ? (
                       <>
-                        <div className="rounded-md bg-gray-50 p-3">
-                          <p className="font-semibold">
-                            {passenger
-                              ? `${passenger.first_name} ${passenger.last_name}`
-                              : "Passenger"}
-                          </p>
+                        <div className="mt-5 rounded-xl border border-zinc-100 p-4">
+                          <div className="flex items-center gap-3">
+                            <span className="grid h-10 w-10 place-items-center rounded-full bg-zinc-950 text-xs font-extrabold text-white">
+                              {passengerName.charAt(0).toUpperCase()}
+                            </span>
+                            <div>
+                              <p className="font-bold text-zinc-950">{passengerName}</p>
+                              <p className="text-xs text-zinc-500">Passenger requesting a seat</p>
+                            </div>
+                          </div>
 
-                          {passenger?.universityEmail && (
-                            <p className="mt-1 flex items-center gap-2 text-sm text-gray-600">
-                              <Mail className="h-4 w-4" />
-                              {passenger.universityEmail}
-                            </p>
-                          )}
-
-                          {passenger?.phoneNumber && (
-                            <p className="mt-1 flex items-center gap-2 text-sm text-gray-600">
-                              <Phone className="h-4 w-4" />
-                              {passenger.phoneNumber}
-                            </p>
-                          )}
+                          <div className="mt-4 space-y-2 border-t border-zinc-100 pt-4 text-sm text-zinc-600">
+                            {passenger?.universityEmail && (
+                              <p className="flex items-start gap-2.5">
+                                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" />
+                                <span className="break-all">{passenger.universityEmail}</span>
+                              </p>
+                            )}
+                            {passenger?.phoneNumber && (
+                              <p className="flex items-start gap-2.5">
+                                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-zinc-400" />
+                                {passenger.phoneNumber}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
                         {request.status === "pending" && (
-                          <div className="flex gap-3">
+                          <div className="mt-5 grid grid-cols-2 gap-3">
                             <Button
-                              className="flex-1 bg-lau-green hover:bg-lau-dark"
                               disabled={actingId === request._id}
-                              onClick={() =>
-                                void handleResponse(
-                                  request._id,
-                                  "accepted"
-                                )
-                              }
+                              onClick={() => void handleResponse(request._id, "accepted")}
                             >
-                              <Check className="mr-2 h-4 w-4" />
-                              Accept
+                              <Check /> Accept
                             </Button>
-
                             <Button
-                              variant="destructive"
-                              className="flex-1"
+                              variant="outline"
+                              className="border-red-200 text-red-700 hover:border-red-300 hover:bg-red-50 hover:text-red-800"
                               disabled={actingId === request._id}
-                              onClick={() =>
-                                void handleResponse(
-                                  request._id,
-                                  "rejected"
-                                )
-                              }
+                              onClick={() => void handleResponse(request._id, "rejected")}
                             >
-                              <X className="mr-2 h-4 w-4" />
-                              Reject
+                              <X /> Reject
                             </Button>
                           </div>
                         )}
                       </>
                     ) : (
                       <>
-                        <p>
-                          <span className="font-semibold">Driver:</span>{" "}
-                          {driver
-                            ? `${driver.first_name} ${driver.last_name}`
-                            : "Driver information unavailable"}
-                        </p>
+                        <div className="mt-5 flex items-center gap-3 rounded-xl border border-zinc-100 p-4">
+                          <span className="grid h-10 w-10 place-items-center rounded-full bg-zinc-950 text-xs font-extrabold text-white">
+                            {driverName.charAt(0).toUpperCase()}
+                          </span>
+                          <div>
+                            <p className="text-xs text-zinc-500">Driver</p>
+                            <p className="font-bold text-zinc-950">{driverName}</p>
+                          </div>
+                        </div>
 
                         {request.status === "accepted" && driver && (
-                          <div className="rounded-md border border-green-200 bg-green-50 p-3 text-sm">
-                            <p className="font-semibold text-green-800">
-                              Your request was accepted.
+                          <div className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                            <p className="flex items-center gap-2 text-sm font-bold text-emerald-800">
+                              <CheckCircle2 className="h-4 w-4" /> Your request was accepted
                             </p>
-                            <p className="mt-1 text-green-700">
-                              Contact: {driver.universityEmail}
-                            </p>
-                            {driver.vehicleNumber && (
-                              <p className="text-green-700">
-                                Vehicle: {driver.vehicleNumber}
+                            <div className="mt-3 space-y-2 text-sm text-emerald-700">
+                              <p className="flex items-start gap-2.5">
+                                <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+                                <span className="break-all">{driver.universityEmail}</span>
                               </p>
-                            )}
+                              {driver.vehicleNumber && (
+                                <p className="flex items-start gap-2.5">
+                                  <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                                  Vehicle: {driver.vehicleNumber}
+                                </p>
+                              )}
+                            </div>
                           </div>
                         )}
 
                         {request.status === "rejected" && (
-                          <div className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-                            The driver rejected this request. You can choose another ride.
+                          <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">
+                            The driver rejected this request. You can return to the ride board and choose another option.
                           </div>
                         )}
                       </>
                     )}
-                  </CardContent>
-                </Card>
+                  </div>
+                </article>
               );
             })}
-
-            {items.length === 0 && (
-              <p>
-                {userRole === "driver"
-                  ? "No passengers have requested your rides yet."
-                  : "You have not requested any rides yet."}
-              </p>
-            )}
           </div>
+        ) : (
+          <EmptyState
+            icon={isDriver ? UsersRound : UserRound}
+            title={isDriver ? "No passenger requests yet" : "No ride requests yet"}
+            description={
+              isDriver
+                ? "Requests will appear here as soon as passengers choose one of your published rides."
+                : "Open the ride board, choose a suitable trip, and submit your first request."
+            }
+          />
         )}
-      </div>
+      </section>
     </Layout>
   );
 }
